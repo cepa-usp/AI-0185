@@ -13,6 +13,9 @@ var a0 = 2;
 var a1 = 4;
 var t1 = 3;
 var t2 = 8;
+var mass = 2;
+var f0 = mass * a0;
+var f1 = mass * a1;
 
 var corg1 = "#000000";
 var corg2 = "#00FF00";
@@ -22,10 +25,10 @@ var corg4 = "#FF0000";
 function init(){
 
 	r = Raphael("charts");
-	chart.eixos1 = Graph(1, heightAxis, widthAxis, heightAxis, 0, 10, 0, 50, 1, 0.1, 10, 1);
+	chart.eixos1 = Graph(1, heightAxis, widthAxis, heightAxis, 0, 10, 0, 20, 1, 0.1, 2, 0.2);
 	chart.eixos2 = Graph(border + widthAxis, heightAxis, widthAxis, heightAxis, 0, 10, 0, 100, 1, 0.1, 10, 1);
-	chart.eixos3 = Graph(1, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 500, 1, 0.1, 50, 5);
-	chart.eixos4 = Graph(border + widthAxis, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 10, 1, 0.1, 1, 0.1);
+	chart.eixos3 = Graph(border + widthAxis, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 500, 1, 0.1, 50, 5);
+	chart.eixos4 = Graph(1, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 10, 1, 0.1, 1, 0.1);
 
 	//(ptx, pty, id, label, labelAxis, downF, moveF, upF, limitPoints)
 
@@ -34,6 +37,8 @@ function init(){
 	chart.eixos2.addMovingPoint(0, v0, "v0", "v0", "x", mouseDown, velMove, velUp, null, corg2);
 	chart.eixos4.addMovingPoint(0, a0, "a0", "a0", "x", mouseDown, accelMove, accelUp, null, corg4);
 	chart.eixos4.addMovingPoint(0, a1, "a1", "a1", "x", mouseDown, accelMove, accelUp, null, corg4);
+	chart.eixos1.addMovingPoint(0, f0, "f0", "f0", "x", mouseDown, forceMove, forceUp, null, corg1);
+	chart.eixos1.addMovingPoint(0, f1, "f1", "f1", "x", mouseDown, forceMove, forceUp, null, corg1);
 
 	chart.eixos1.addMovingPoint(t1, 0, "t1-1", "t1", "y", mouseDown, timeMove, timeUp);
 	chart.eixos1.addMovingPoint(t2, 0, "t2-1", "t2", "y", mouseDown, timeMove, timeUp);
@@ -46,6 +51,9 @@ function init(){
 
 	chart.eixos4.addSegment(0, a0, t1, a0, "a0", corg4);
 	chart.eixos4.addSegment(t1, a1, t2, a1, "a1", corg4);
+
+	chart.eixos1.addSegment(0, f0, t1, f0, "f0", corg1);
+	chart.eixos1.addSegment(t1, f1, t2, f1, "f1", corg1);
 
 	var vt1 = v0 + a0 * t1;
 	var vt2 = vt1 + a1 * (t2 - t1);
@@ -174,12 +182,12 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 
 		pt.graphics.hover(function(){
 			this.attr({'cursor':'pointer'});
-			//var trans = this.data("t") || [0,0];
-			//this.attr({transform: ["t", trans[0], trans[1], "s", 1.5, 1.5]}).attr("stroke-width", "2");
+			var trans = this.data("t") || [0,0];
+			this.attr({transform: ["t", trans[0], trans[1], "s", 1.5, 1.5]}).attr("stroke-width", "2");
 			pts[this.id].label.show();
 		}, function(){
-			//var trans = this.data("t") || [0,0];
-			//this.attr({transform: ["t", trans[0], trans[1], "s", 1, 1]}).attr("stroke-width", "2");
+			var trans = this.data("t") || [0,0];
+			this.attr({transform: ["t", trans[0], trans[1], "s", 1, 1]}).attr("stroke-width", "2");
 			pts[this.id].label.hide();
 		});
 
@@ -360,9 +368,10 @@ function getSpacePath(sp0, vel0, temp0, temp1, acel){
 	//console.log(path);
 	var passo = 0.05;
 
-	for (var i = temp0; i <= temp1 + passo; i+=passo) {
+	doPath: for (var i = temp0; i <= temp1 + passo; i+=passo) {
 		var spPasso = sp0 + (vel0 * (i - temp0)) + (acel * Math.pow((i - temp0), 2))/2;
 		stageCoord = chart.eixos3.getStageCoords(i, spPasso);
+		if(stageCoord.y < chart.eixos3.y0 - chart.eixos3.height) break doPath;
 		path += "L" + stageCoord.x + "," + stageCoord.y;
 	};
 	return path;
@@ -437,11 +446,92 @@ function updateAccelGraphics(){
 	chart.eixos4.updateSegment("a0", 0, pts["a0"].position.y, pts["t1-4"].position.x, pts["a0"].position.y);
 	chart.eixos4.updateSegment("a1", pts["t1-4"].position.x, pts["a1"].position.y, pts["t2-4"].position.x, pts["a1"].position.y);
 
+	var force0 = mass * pts["a0"].position.y;
+	var force1 = mass * pts["a1"].position.y;
+	var f0Stage = chart.eixos1.getStageCoords(0, force0);
+	var f1Stage = chart.eixos1.getStageCoords(0, force1);
+
+	var ptF0 = pts["f0"];
+	var ptF1 = pts["f1"];
+
+	ptF0.position = {x:0, y:force0};
+	ptF0.graphics.transform("t0," + (f0Stage.y - chart.eixos1.y0));
+	ptF0.graphics.data("t", [0, f0Stage.y - chart.eixos1.y0]);
+	ptF0.label.transform("t0," + (f0Stage.y - chart.eixos1.y0));
+
+	ptF1.position = {x:0, y:force1};
+	ptF1.graphics.transform("t0," + (f1Stage.y - chart.eixos1.y0));
+	ptF1.graphics.data("t", [0, f1Stage.y - chart.eixos1.y0]);
+	ptF1.label.transform("t0," + (f1Stage.y - chart.eixos1.y0));
+
+	chart.eixos1.updateSegment("f0", 0, pts["f0"].position.y, pts["t1-1"].position.x, pts["f0"].position.y);
+	chart.eixos1.updateSegment("f1", pts["t1-1"].position.x, pts["f1"].position.y, pts["t2-1"].position.x, pts["f1"].position.y);
+
 	updateVelGraphics();
 	updateSpaceGraphics();
 }
 
 function accelUp(){
+	this.data("t", [trans[0], trans[1] + delta[1]]);
+    trans = null;
+    delta = null;
+    pt = null;
+}
+
+//----------------------------------------------------------------------------
+//Force move handlers
+function forceMove(dx, dy){
+    var newPosy = trans[1] + dy;
+	var newDy = dy;
+	if(newPosy < -pt.graph.height) {
+		newPosy = -pt.graph.height;
+		newDy = newPosy - trans[1];
+	}else if(newPosy > 0){
+		newPosy = 0;
+		newDy = newPosy - trans[1];
+	}
+
+    //this.attr({transform: ['t',trans[0], newPosy]});
+    this.transform('t' + trans[0] + ","  + newPosy)
+    pt.label.transform('t' + trans[0] + "," + newPosy);
+    delta = [dx, newDy];
+
+    var bbox = this.getBBox();
+    pt.position = pt.graph.getGraphCoords(bbox.x + bbox.width/2, bbox.y + bbox.height/2);
+    updateForceGraphics();
+}
+
+//TODO: redraw velocity graphic
+function updateForceGraphics(){
+	chart.eixos1.updateSegment("f0", 0, pts["f0"].position.y, pts["t1-1"].position.x, pts["f0"].position.y);
+	chart.eixos1.updateSegment("f1", pts["t1-1"].position.x, pts["f1"].position.y, pts["t2-1"].position.x, pts["f1"].position.y);
+
+	var accel0 = pts["f0"].position.y/mass;
+	var accel1 = pts["f1"].position.y/mass;
+	var a0Stage = chart.eixos4.getStageCoords(0, accel0);
+	var a1Stage = chart.eixos4.getStageCoords(0, accel1);
+
+	var ptA0 = pts["a0"];
+	var ptA1 = pts["a1"];
+
+	ptA0.position = {x:0, y:accel0};
+	ptA0.graphics.transform("t0," + (a0Stage.y - chart.eixos4.y0));
+	ptA0.graphics.data("t", [0, a0Stage.y - chart.eixos4.y0]);
+	ptA0.label.transform("t0," + (a0Stage.y - chart.eixos4.y0));
+
+	ptA1.position = {x:0, y:accel1};
+	ptA1.graphics.transform("t0," + (a1Stage.y - chart.eixos4.y0));
+	ptA1.graphics.data("t", [0, a1Stage.y - chart.eixos4.y0]);
+	ptA1.label.transform("t0," + (a1Stage.y - chart.eixos4.y0));
+
+	chart.eixos4.updateSegment("a0", 0, pts["a0"].position.y, pts["t1-4"].position.x, pts["a0"].position.y);
+	chart.eixos4.updateSegment("a1", pts["t1-4"].position.x, pts["a1"].position.y, pts["t2-4"].position.x, pts["a1"].position.y);
+
+	updateVelGraphics();
+	updateSpaceGraphics();
+}
+
+function forceUp(){
 	this.data("t", [trans[0], trans[1] + delta[1]]);
     trans = null;
     delta = null;
@@ -501,6 +591,7 @@ function updateTimeGraphics(id, trans){
 
 		var ptsi = pts[tg.id];
 		ptsi.label.attr({transform: ['t',trans[0], trans[1]]});
+		ptsi.graphics.data("t", [trans[0], trans[1]]);
 
 		var bbox = tg.getBBox();
     	ptsi.position = ptsi.graph.getGraphCoords(bbox.x + bbox.width/2, bbox.y + bbox.height/2); 
@@ -512,20 +603,9 @@ function updateTimeGraphics(id, trans){
 }
 
 function timeUp(){
-	updateTimes(this.id, delta);
     trans = null;
-    //delta = null;
+    delta = null;
     pt = null;
-}
-
-function updateTimes(id, deltat){
-	var timeMoving = pts[id].label.attr("text");
-
-	for (var i = 1; i <= 4; i++) {
-		var tg = r.getById(timeMoving + "-" + i.toString());
-		var trans = tg.data("t") || [0,0];
-		tg.data("t", [trans[0] + deltat[0], trans[1] + deltat[1]]);
-	}
 }
 
 //----------------------------------------------------------------------------
