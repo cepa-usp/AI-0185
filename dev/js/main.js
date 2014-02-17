@@ -836,6 +836,9 @@ function chartClick(e){
 	}
 
 	var posClick = grph.getGraphCoords(e.pageX, e.pageY);
+
+	if(posClick.x > pts['t2-1'].position.x || posClick.x < 0) return;
+
 	var ft = grph.func(posClick.x);
 	var stagePt = grph.getStageCoords(posClick.x, ft);
 
