@@ -6,6 +6,8 @@ var pointr = 4;
 var r;
 var chart = {};
 var pts = {};
+var clickPt;
+var timerToRemove;
 var segments = {};
 var ptsIds = ["s0", "v0", "a0", "a1", "f0", "f1"];
 
@@ -27,10 +29,10 @@ var corg4 = "#FF0000";
 function init(){
 
 	r = Raphael("charts");
-	chart.eixos1 = Graph(1, heightAxis, widthAxis, heightAxis, 0, 10, 0, 20, 1, 0.1, 2, 0.2);
-	chart.eixos2 = Graph(border + widthAxis, heightAxis, widthAxis, heightAxis, 0, 10, 0, 100, 1, 0.1, 10, 1);
-	chart.eixos3 = Graph(border + widthAxis, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 500, 1, 0.1, 50, 5);
-	chart.eixos4 = Graph(1, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 10, 1, 0.1, 1, 0.1);
+	chart.eixos1 = Graph(1, heightAxis, widthAxis, heightAxis, 0, 10, 0, 20, 1, 0.1, 2, 0.2, getForce);
+	chart.eixos2 = Graph(border + widthAxis, heightAxis, widthAxis, heightAxis, 0, 10, 0, 100, 1, 0.1, 10, 1, getVel);
+	chart.eixos3 = Graph(border + widthAxis, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 500, 1, 0.1, 50, 5, getSpace);
+	chart.eixos4 = Graph(1, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 10, 1, 0.1, 1, 0.1, getAcel);
 
 	//(ptx, pty, id, label, labelAxis, downF, moveF, upF, limitPoints)
 
@@ -102,6 +104,7 @@ function init(){
 			grph.ymax -= grph.ticky;
 			if(grph.ymax < grph.ticky) grph.ymax = grph.ticky;
 			grph.redraw();
+			return false;
 		} else {
 		    //scroll up
 		    if(e.pageX < 410){
@@ -123,20 +126,25 @@ function init(){
 			}
 		    grph.ymax += grph.ticky;
 		    grph.redraw();
+		    return false;
 		}
 		//prevent page fom scrolling
-		return false;
+		
 	});
+
+	$('#charts').on("click", chartClick);
 }
 
 function createAxis(originX, originY, width, height){
 	return r.path("M" + originX + "," + (originY - height) + "L" + originX + "," + originY + "L" + (originX + width) + "," + originY);
 }
 
-function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, subtickx, ticky, subticky){
+function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, subtickx, ticky, subticky, func){
 	var marginW = 28;
 	var marginH = 15;
 	var g = {};
+
+	g.func = func;
 	g.zoomFactor = 1;
 	g.x0 = originX + marginW;
 	g.y0 = originY - marginH;
@@ -250,6 +258,26 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 		//this.points.push(pt);
 		pts[id] = pt;
 		
+	}
+
+	g.addClickPoint = function(ptx, pty, id){
+		var pt = {};
+		pt.graph = this;
+
+		var stageCoords = this.getStageCoords(ptx, pty);
+		pt.x = stageCoords.x;
+		pt.y = stageCoords.y;
+		pt.position = {x:ptx, y:pty};
+
+		pt.label = r.text(this.x0, this.y0 - 10 , "(" + ptx.toFixed(2) + "," + pty.toFixed(2) + ")");
+		pt.label.transform("t" + (pt.x - this.x0) + "," + (pt.y - this.y0));
+
+		pt.graphics = r.circle(this.x0, this.y0, pointr).attr({fill: "transparent", "stroke-width": "2", 'stroke': '#8F4242'});
+		pt.graphics.transform("t" + (pt.x - this.x0) + "," + (pt.y - this.y0));
+		//pt.graphics.id = id;
+		pt.graphics.data("t", [(pt.x - this.x0),(pt.y - this.y0)]);
+
+		return pt;
 	}
 
 	g.addSegment = function(pt1x, pt1y, pt2x, pt2y, id, fill){
@@ -703,14 +731,26 @@ function changeF(){
 }
 
 function updateAll(){
+	var pt;
+	var stageCoords;
+	var newPosy;
 	for (var i = 0; i < ptsIds.length; i++) {
-		var pt = pts[ptsIds[i]];
-		var stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
-		var newPosy = stageCoords.y - pt.graph.y0;
+		pt = pts[ptsIds[i]];
+		stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
+		newPosy = stageCoords.y - pt.graph.y0;
 		pt.graphics.transform('t0,' + newPosy)
     	pt.label.transform('t0,' + newPosy);
     	pt.graphics.data("t", [0,newPosy]);
 	};
+
+	if(clickPt){
+		pt = clickPt;
+		stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
+		newPosy = stageCoords.y - pt.graph.y0;
+		pt.graphics.transform('t' + pt.graphics.data("t")[0] + "," + newPosy)
+		pt.label.transform('t' + pt.graphics.data("t")[0] + "," + newPosy);
+		pt.graphics.data("t", [pt.graphics.data("t")[0],newPosy]);
+	}
 
 	//updateForceGraphics();
 	updateAccelGraphics();
@@ -718,8 +758,11 @@ function updateAll(){
 }
 
 function showHidePts(){
-	for (var i = 0; i < ptsIds.length; i++) {
-		var pt = pts[ptsIds[i]];
+	var pt;
+	for (var i = 0; i <= ptsIds.length; i++) {
+		if(i < ptsIds.length) pt = pts[ptsIds[i]];
+		else pt = clickPt;
+		if(!pt) return;
 		//var stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
 		var newPosy = pt.graphics.data("t")[1];
 		//pt.graphics.transform('t0,' + newPosy)
@@ -727,12 +770,101 @@ function showHidePts(){
     	//pt.graphics.data("t", [0,newPosy]);
     	if(newPosy < -pt.graph.height){
     		pt.graphics.hide();
+    		if(pt == clickPt) pt.label.hide();
     		//pt.label.hide();
     		if(segments[ptsIds[i]]) segments[ptsIds[i]].graphics.hide();
     	}else{
     		pt.graphics.show();
+    		if(pt == clickPt) pt.label.show();
     		//pt.label.show();
     		if(segments[ptsIds[i]]) segments[ptsIds[i]].graphics.show();
     	}
 	}
+}
+
+function getSpace(temp){
+	if(temp < pts['t1-1'].position.x){
+		return pts['s0'].position.y + (pts['v0'].position.y * temp) + (pts['a0'].position.y * Math.pow(temp, 2))/2;
+	}else{
+		var sp1 = pts['s0'].position.y + (pts['v0'].position.y * pts['t1-1'].position.x) + (pts['a0'].position.y * Math.pow(pts['t1-1'].position.x, 2))/2;
+		var ve1 = pts['v0'].position.y + pts['a0'].position.y * pts['t1-1'].position.x;
+		var dt2 = temp - pts['t1-1'].position.x;
+		var sp2 = sp1 + ve1 * dt2 + (pts['a1'].position.y * Math.pow(dt2, 2))/2;
+		return sp2;
+	}
+}
+
+function getVel(temp){
+	if(temp < pts['t1-1'].position.x){
+		return pts['v0'].position.y + (pts['a0'].position.y * temp);
+	}else{
+		var ve1 = pts['v0'].position.y + (pts['a0'].position.y * pts['t1-1'].position.x);
+		var dt2 = temp - pts['t1-1'].position.x;
+		var ve2 = ve1 + pts['a1'].position.y * dt2;
+		return ve2;
+	}
+}
+
+function getAcel(temp){
+	if(temp < pts['t1-1'].position.x) return pts['a0'].position.y;
+	else return pts['a1'].position.y;
+}
+
+function getForce(temp){
+	if(temp < pts['t1-1'].position.x) return pts['f0'].position.y;
+	else return pts['f1'].position.y;
+}
+
+function chartClick(e){
+	var grph;
+	if(e.pageX < 410){
+		if(e.pageY < 310){
+			//gráfico 1
+			grph = chart.eixos1;
+		}else{
+			//gráfico 4
+			grph = chart.eixos4;
+		}
+	}else{
+		if(e.pageY < 310){
+			//gráfico 2
+			grph = chart.eixos2;
+		}else{
+			//gráfico 3
+			grph = chart.eixos3;
+		}
+	}
+
+	var posClick = grph.getGraphCoords(e.pageX, e.pageY);
+	var ft = grph.func(posClick.x);
+	var stagePt = grph.getStageCoords(posClick.x, ft);
+
+	if(distance(e.pageX, e.pageY, stagePt.x, stagePt.y) < pointr){
+		if(clickPt) removeClickPt();
+
+		clickPt = grph.addClickPoint(posClick.x, ft);
+		//$("#charts").on("mousemove", verifyPtDistance);
+		timerToRemove = window.setTimeout(removeClickPt, 5000);
+	}
+
+}
+
+function verifyPtDistance(e){
+	//console.log("aqui");
+	if(distance(clickPt.x, clickPt.y, e.pageX, e.pageY) > 100){
+		$("#charts").off("mousemove", verifyPtDistance);
+		removeClickPt();
+	}
+}
+
+function removeClickPt(){
+	clearInterval(timerToRemove);
+	clickPt.graphics.remove();
+	clickPt.label.remove();
+	clickPt = null;
+}
+
+
+function distance(x1, y1, x2, y2){
+	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
