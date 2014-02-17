@@ -6,6 +6,7 @@ var pointr = 4;
 var r;
 var chart = {};
 var pts = {};
+var segments = {};
 var ptsIds = ["s0", "v0", "a0", "a1", "f0", "f1"];
 
 var s0 = 100;
@@ -32,23 +33,6 @@ function init(){
 	chart.eixos4 = Graph(1, border + (2 * heightAxis), widthAxis, heightAxis, 0, 10, 0, 10, 1, 0.1, 1, 0.1);
 
 	//(ptx, pty, id, label, labelAxis, downF, moveF, upF, limitPoints)
-
-
-	chart.eixos3.addMovingPoint(0, s0, "s0", "s0", "x", mouseDown, spaceMove, spaceUp, null, corg3);
-	chart.eixos2.addMovingPoint(0, v0, "v0", "v0", "x", mouseDown, velMove, velUp, null, corg2);
-	chart.eixos4.addMovingPoint(0, a0, "a0", "a0", "x", mouseDown, accelMove, accelUp, null, corg4);
-	chart.eixos4.addMovingPoint(0, a1, "a1", "a1", "x", mouseDown, accelMove, accelUp, null, corg4);
-	chart.eixos1.addMovingPoint(0, f0, "f0", "f0", "x", mouseDown, forceMove, forceUp, null, corg1);
-	chart.eixos1.addMovingPoint(0, f1, "f1", "f1", "x", mouseDown, forceMove, forceUp, null, corg1);
-
-	chart.eixos1.addMovingPoint(t1, 0, "t1-1", "t1", "y", mouseDown, timeMove, timeUp);
-	chart.eixos1.addMovingPoint(t2, 0, "t2-1", "t2", "y", mouseDown, timeMove, timeUp);
-	chart.eixos2.addMovingPoint(t1, 0, "t1-2", "t1", "y", mouseDown, timeMove, timeUp);
-	chart.eixos2.addMovingPoint(t2, 0, "t2-2", "t2", "y", mouseDown, timeMove, timeUp);
-	chart.eixos3.addMovingPoint(t1, 0, "t1-3", "t1", "y", mouseDown, timeMove, timeUp);
-	chart.eixos3.addMovingPoint(t2, 0, "t2-3", "t2", "y", mouseDown, timeMove, timeUp);
-	chart.eixos4.addMovingPoint(t1, 0, "t1-4", "t1", "y", mouseDown, timeMove, timeUp);
-	chart.eixos4.addMovingPoint(t2, 0, "t2-4", "t2", "y", mouseDown, timeMove, timeUp);
 
 	chart.eixos4.addSegment(0, a0, t1, a0, "a0", corg4);
 	chart.eixos4.addSegment(t1, a1, t2, a1, "a1", corg4);
@@ -78,6 +62,71 @@ function init(){
 	chart.eixos3.addPath("s0", getSpacePath(s0, v0, 0, t1, a0), corg3);
 	chart.eixos3.addPath("s1", getSpacePath(st1, vel1, t1, t2, a1), corg3);
 
+	chart.eixos3.addMovingPoint(0, s0, "s0", "s0", "x", mouseDown, spaceMove, spaceUp, null, corg3);
+	chart.eixos2.addMovingPoint(0, v0, "v0", "v0", "x", mouseDown, velMove, velUp, null, corg2);
+	chart.eixos4.addMovingPoint(0, a0, "a0", "a0", "x", mouseDown, accelMove, accelUp, null, corg4);
+	chart.eixos4.addMovingPoint(0, a1, "a1", "a1", "x", mouseDown, accelMove, accelUp, null, corg4);
+	chart.eixos1.addMovingPoint(0, f0, "f0", "f0", "x", mouseDown, forceMove, forceUp, null, corg1);
+	chart.eixos1.addMovingPoint(0, f1, "f1", "f1", "x", mouseDown, forceMove, forceUp, null, corg1);
+
+	chart.eixos1.addMovingPoint(t1, 0, "t1-1", "t1", "y", mouseDown, timeMove, timeUp);
+	chart.eixos1.addMovingPoint(t2, 0, "t2-1", "t2", "y", mouseDown, timeMove, timeUp);
+	chart.eixos2.addMovingPoint(t1, 0, "t1-2", "t1", "y", mouseDown, timeMove, timeUp);
+	chart.eixos2.addMovingPoint(t2, 0, "t2-2", "t2", "y", mouseDown, timeMove, timeUp);
+	chart.eixos3.addMovingPoint(t1, 0, "t1-3", "t1", "y", mouseDown, timeMove, timeUp);
+	chart.eixos3.addMovingPoint(t2, 0, "t2-3", "t2", "y", mouseDown, timeMove, timeUp);
+	chart.eixos4.addMovingPoint(t1, 0, "t1-4", "t1", "y", mouseDown, timeMove, timeUp);
+	chart.eixos4.addMovingPoint(t2, 0, "t2-4", "t2", "y", mouseDown, timeMove, timeUp);
+
+	$('#charts').on('DOMMouseScroll mousewheel', function (e) {
+		var grph;
+		if(e.originalEvent.detail > 0 || e.originalEvent.wheelDelta < 0) { //alternative options for wheelData: wheelDeltaX & wheelDeltaY
+			//scroll down
+			if(e.pageX < 410){
+				if(e.pageY < 310){
+					//gráfico 1
+					grph = chart.eixos1;
+				}else{
+					//gráfico 4
+					grph = chart.eixos4;
+				}
+			}else{
+				if(e.pageY < 310){
+					//gráfico 2
+					grph = chart.eixos2;
+				}else{
+					//gráfico 3
+					grph = chart.eixos3;
+				}
+			}
+			grph.ymax -= grph.ticky;
+			if(grph.ymax < grph.ticky) grph.ymax = grph.ticky;
+			grph.redraw();
+		} else {
+		    //scroll up
+		    if(e.pageX < 410){
+				if(e.pageY < 310){
+					//gráfico 1
+					grph = chart.eixos1;
+				}else{
+					//gráfico 4
+					grph = chart.eixos4;
+				}
+			}else{
+				if(e.pageY < 310){
+					//gráfico 2
+					grph = chart.eixos2;
+				}else{
+					//gráfico 3
+					grph = chart.eixos3;
+				}
+			}
+		    grph.ymax += grph.ticky;
+		    grph.redraw();
+		}
+		//prevent page fom scrolling
+		return false;
+	});
 }
 
 function createAxis(originX, originY, width, height){
@@ -88,7 +137,7 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 	var marginW = 28;
 	var marginH = 15;
 	var g = {};
-
+	g.zoomFactor = 1;
 	g.x0 = originX + marginW;
 	g.y0 = originY - marginH;
 	g.width = width - marginW - 5;
@@ -168,13 +217,6 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 		pt.labelText = label;
 		pt.labelAxis = labelAxis;
 
-		pt.graphics = r.circle(this.x0, this.y0, pointr).attr({fill: "transparent", "stroke-width": "2", 'stroke': stroke || '#D16619'});
-		pt.graphics.transform("t" + (pt.x - this.x0) + "," + (pt.y - this.y0));
-		pt.graphics.id = id;
-		pt.graphics.data("t", [(pt.x - this.x0),(pt.y - this.y0)]);
-		//pt.graphics.attr("stroke-width", "2");
-		pt.graphics.drag(moveF, downF, upF);
-
 		if(label) {
 			if(labelAxis == "x") {
 				pt.label = r.text(this.x0 + 8, this.y0 - 6, label);//.attr("text-anchor", "end");
@@ -184,6 +226,13 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 			pt.label.transform("t" + (pt.x - this.x0) + "," + (pt.y - this.y0));
 			pt.label.hide();
 		}
+
+		pt.graphics = r.circle(this.x0, this.y0, pointr).attr({fill: "transparent", "stroke-width": "2", 'stroke': stroke || '#D16619'});
+		pt.graphics.transform("t" + (pt.x - this.x0) + "," + (pt.y - this.y0));
+		pt.graphics.id = id;
+		pt.graphics.data("t", [(pt.x - this.x0),(pt.y - this.y0)]);
+		//pt.graphics.attr("stroke-width", "2");
+		pt.graphics.drag(moveF, downF, upF);
 
 		pt.graphics.hover(function(){
 			this.attr({'cursor':'pointer'});
@@ -210,19 +259,21 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 
 		seg.pt1 = {x: pt1x, y:pt1y};
 		seg.pt2 = {x: pt2x, y:pt2y};
-		seg.grahics = r.path("M" + pt1.x + "," + pt1.y + "L" + pt2.x + "," + pt2.y).attr("stroke", fill || "#000000");
-		seg.grahics.id = id;
-		this.segments[id] = seg;
+		seg.graphics = r.path("M" + pt1.x + "," + pt1.y + "L" + pt2.x + "," + pt2.y).attr("stroke", fill || "#000000");
+		seg.graphics.id = id;
+		//this.segments[id] = seg;
+		segments[id] = seg;
 	}
 
 	g.updateSegment = function(id, pt1x, pt1y, pt2x, pt2y){
 		var pt1 = this.getStageCoords(pt1x, pt1y);
 		var pt2 = this.getStageCoords(pt2x, pt2y);
 
-		var seg = this.segments[id];
+		//var seg = this.segments[id];
+		var seg = segments[id];
 		seg.pt1 = {x: pt1x, y:pt1y};
 		seg.pt2 = {x: pt2x, y:pt2y};
-		seg.grahics.attr("path", "M" + pt1.x + "," + pt1.y + "L" + pt2.x + "," + pt2.y);
+		seg.graphics.attr("path", "M" + pt1.x + "," + pt1.y + "L" + pt2.x + "," + pt2.y);
 
 	}
 
@@ -379,6 +430,7 @@ function updateSpaceGraphics(){
 
 	chart.eixos3.updatePath("s0", getSpacePath(pts["s0"].position.y, pts["v0"].position.y, 0, pts["t1-3"].position.x, pts["a0"].position.y));
 	chart.eixos3.updatePath("s1", getSpacePath(sp1, vel1, pts["t1-3"].position.x, pts["t2-3"].position.x, pts["a1"].position.y));
+	//showHidePts();
 }
 
 function spaceUp(){
@@ -494,7 +546,7 @@ function updateAccelGraphics(){
 
 	chart.eixos1.updateSegment("f0", 0, pts["f0"].position.y, pts["t1-1"].position.x, pts["f0"].position.y);
 	chart.eixos1.updateSegment("f1", pts["t1-1"].position.x, pts["f1"].position.y, pts["t2-1"].position.x, pts["f1"].position.y);
-
+	showHidePts();
 	updateVelGraphics();
 	updateSpaceGraphics();
 }
@@ -555,7 +607,7 @@ function updateForceGraphics(){
 
 	chart.eixos4.updateSegment("a0", 0, pts["a0"].position.y, pts["t1-4"].position.x, pts["a0"].position.y);
 	chart.eixos4.updateSegment("a1", pts["t1-4"].position.x, pts["a1"].position.y, pts["t2-4"].position.x, pts["a1"].position.y);
-
+	showHidePts();
 	updateVelGraphics();
 	updateSpaceGraphics();
 }
@@ -614,7 +666,7 @@ function timeMove(dx, dy){
 //TODO: redraw velocity graphic
 function updateTimeGraphics(id, trans){
 	var timeMoving = pts[id].labelText;
-	console.log(timeMoving);
+	//console.log(timeMoving);
 
 	for (var i = 1; i <= 4; i++) {
 		var tg = r.getById(timeMoving + "-" + i.toString());
@@ -662,4 +714,25 @@ function updateAll(){
 
 	//updateForceGraphics();
 	updateAccelGraphics();
+	showHidePts();
+}
+
+function showHidePts(){
+	for (var i = 0; i < ptsIds.length; i++) {
+		var pt = pts[ptsIds[i]];
+		//var stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
+		var newPosy = pt.graphics.data("t")[1];
+		//pt.graphics.transform('t0,' + newPosy)
+    	//pt.label.transform('t0,' + newPosy);
+    	//pt.graphics.data("t", [0,newPosy]);
+    	if(newPosy < -pt.graph.height){
+    		pt.graphics.hide();
+    		//pt.label.hide();
+    		if(segments[ptsIds[i]]) segments[ptsIds[i]].graphics.hide();
+    	}else{
+    		pt.graphics.show();
+    		//pt.label.show();
+    		if(segments[ptsIds[i]]) segments[ptsIds[i]].graphics.show();
+    	}
+	}
 }
