@@ -6,6 +6,7 @@ var pointr = 4;
 var r;
 var chart = {};
 var pts = {};
+var ptsIds = ["s0", "v0", "a0", "a1", "f0", "f1"];
 
 var s0 = 100;
 var v0 = 0;
@@ -103,6 +104,8 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 	g.points = {};
 	g.segments = {};
 	g.curves = {};
+	g.textsX = [];
+	g.textsY = [];
 
 	g.drawAxis = function(){
 		this.axis = r.path("M" + this.x0 + "," + (this.y0 - this.height) + "L" + this.x0 + "," + this.y0 + "L" + (this.x0 + this.width) + "," + this.y0);
@@ -114,7 +117,7 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 		var tickNx = this.tickx/this.subtickx;
 		var subTickControlx = 1;
 		var tickPosX = 0;
-		var textsX = [];
+		//var textsX = [];
 		for (var i = this.xmin + this.subtickx; i <= this.xmax; i += this.subtickx) {
 			tickPosX = this.getStageCoords(i, this.ymin);
 			if(subTickControlx < tickNx){
@@ -123,7 +126,7 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 			}else{
 				pathx += "M" + tickPosX.x + "," + (tickPosX.y - 5) + "L" + tickPosX.x + "," + (tickPosX.y);
 				subTickControlx = 1;
-				textsX.push(r.text(tickPosX.x, tickPosX.y + 8, i.toFixed(0)));
+				this.textsX.push(r.text(tickPosX.x, tickPosX.y + 8, i.toFixed(0)));
 			}
 			
 		};
@@ -136,7 +139,7 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 		var tickNy = this.ticky/this.subticky;
 		var subTickControly = 1;
 		var tickPosY = 0;
-		var textsY = [];
+		//var textsY = [];
 		for (var i = this.ymin + this.subticky; i <= this.ymax; i += this.subticky) {
 			tickPosY = this.getStageCoords(this.xmin, i);
 			//pathx += "M" + tickPosX.x + "," + (tickPosX.y - 2) + "L" + tickPosX.x + "," + (tickPosX.y + 2);
@@ -146,7 +149,7 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 			}else{
 				pathy += "M" + tickPosY.x + "," + tickPosY.y + "L" + (tickPosY.x + 5) + "," + tickPosY.y;
 				subTickControly = 1;
-				textsY.push(r.text(tickPosY.x - 6, tickPosY.y, i.toFixed(0)).attr("text-anchor", "end"));
+				this.textsY.push(r.text(tickPosY.x - 6, tickPosY.y, i.toFixed(0)).attr("text-anchor", "end"));
 			}
 			
 		};
@@ -282,6 +285,24 @@ function Graph(originX, originY, width, height, xmin, xmax, ymin, ymax, tickx, s
 		this.drawAxis();
 		this.doTicksX();
 		this.doThicksY();
+	}
+
+	g.redraw = function(){
+		this.axis.remove();
+		this.gTicksX.remove();
+		this.gTicksY.remove();
+
+		for (var i = 0; i < this.textsX.length; i++) {
+			this.textsX[i].remove();
+		};
+		for (var i = 0; i < this.textsY.length; i++) {
+			this.textsY[i].remove();
+		};
+		this.textsX = [];
+		this.textsY = [];
+
+		this.draw();
+		updateAll();
 	}
 
 	g.draw();
@@ -608,8 +629,26 @@ function timeUp(){
     pt = null;
 }
 
-//----------------------------------------------------------------------------
-//Force move handlers
+function changeF(){
+	var newMass = Number($('#fPicker option:selected').text());
 
+	chart.eixos1.ymax = 10 * newMass;
+	chart.eixos1.ticky = newMass;
+	chart.eixos1.subticky = newMass/10;
+	mass = newMass;
+	chart.eixos1.redraw();
+}
 
-//----------------------------------------------------------------------------
+function updateAll(){
+	for (var i = 0; i < ptsIds.length; i++) {
+		var pt = pts[ptsIds[i]];
+		var stageCoords = pt.graph.getStageCoords(pt.position.x, pt.position.y);
+		var newPosy = stageCoords.y - pt.graph.y0;
+		pt.graphics.transform('t0,' + newPosy)
+    	pt.label.transform('t0,' + newPosy);
+    	pt.graphics.data("t", [0,newPosy]);
+	};
+
+	//updateForceGraphics();
+	updateAccelGraphics();
+}
